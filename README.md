@@ -9,4 +9,8 @@ Works with most Amazon domains.
 For bugs report send me an email to
 rub3nmv@gmail.com
 or visit the github project page at 
+<<<<<<< HEAD
 https://github.com/rubenmv/extension-goodreads-ratings-for-amazon/
+=======
+https://github.com/rubenmv/extension-goodreads-ratings-for-amazon/
+>>>>>>> 020c748eab31846de53352a86df9ab11d51ff841
