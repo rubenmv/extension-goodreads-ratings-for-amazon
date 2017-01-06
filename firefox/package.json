@@ -1,0 +1,20 @@
+{
+  "title": "Goodreads ratings for Amazon",
+  "name": "firefox-addon-goodreads-ratings-for-amazon",
+  "version": "1.4.1",
+  "description": "Show Goodreads ratings for books in Amazon",
+  "main": "index.js",
+  "author": "Ruben Martinez Vilar",
+  "homepage": "https://github.com/rubenmv/extension-goodreads-ratings-for-amazon",
+  "permissions": {
+    "multiprocess": true
+  },
+  "engines": {
+    "firefox": ">=38.0a1",
+    "fennec": ">=38.0a1"
+  },
+  "license": "GPL2",
+  "keywords": [
+    "jetpack"
+  ]
+}
