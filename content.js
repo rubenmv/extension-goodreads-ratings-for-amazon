@@ -5,13 +5,15 @@ var intervalsPassed = 0;
  * Search for the Amazon identification number
  */
 function getASIN() {
-  // This selector should work on all Amazon sites 
-  var asin = $("#amsDetailRight").data("detailpageasin"); // Amazon.com
-  if (asin === undefined) {
-    // ASIN not found (not Amazon.com), search again
+  var asin = document.querySelectorAll('[data-detailpageasin]')[0];
+  if(asin !== undefined) {
+    asin = asin.getAttribute('data-detailpageasin');
+  }
+  else {
+    // ASIN not found (not Amazon.com), search again by hidden input
     asin = $("input[name*=ASIN]").val();
     if (asin === undefined || asin.length === 0 || asin.trim() === "") {
-      //console.log("GoodreadsForAmazon: ASIN not found");
+      // console.log("GoodreadsForAmazon: ASIN not found");
       return false;
     }
   }
@@ -33,7 +35,7 @@ function retrieveBookInfo(asin) {
       // GET RATINGS INFO
       var meta = $(response).find("#bookMeta");
       if (meta.length === 0) {
-        console.log("GoodreadsForAmazon: Goodreads meta info not found for ASIN = " + asin);
+        // console.log("GoodreadsForAmazon: Goodreads meta info not found for ASIN = " + asin);
         return;
       }
       meta = meta[0];
@@ -43,17 +45,18 @@ function retrieveBookInfo(asin) {
       var span = document.createElement('span');
       $(span).addClass("goodreadsRating");
       $(span).append($(meta).find(".stars"));
+      $(span).append("<span class='a-letter-space'></span>"); // Amazon spacing class
       $(span).append("<a href='" + urlGoodreads + "'>" +
-        $(meta).find(".value").text() + " out of 5. From " +
+        // $(meta).find(".value").text() + " out of 5. From " +
         $(meta).find(".votes").text() +
-        "</a>");
+        " reviews</a>");
 
       // APPEND TO AMAZON PAGE
       // Append to reviews section
       var amazonReview = $("#averageCustomerReviews");
       // If not found is not .com and uses different html ¬¬
       if (amazonReview.length === 0) {
-        //console.log("GoodreadsForAmazon: averageCustomerReviews not found. Trying with class crAvgStars");
+        // console.log("GoodreadsForAmazon: averageCustomerReviews not found. Trying with class crAvgStars");
         amazonReview = $(".buying .crAvgStars");
       }
       // No Amazon reviews
@@ -98,7 +101,7 @@ $(document).ready(function() {
     if (asin !== false) { // ASIN found
       retrieveBookInfo(asin);
     } else {
-      // console.log("Book not found. THE END.");
+       // console.log("Book not found. THE END.");
     }
   }
 });
