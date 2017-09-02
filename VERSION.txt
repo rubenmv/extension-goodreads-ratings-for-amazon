@@ -1,3 +1,8 @@
+1.5.1 - 2017.09.01
+------------------
+- Search book information with both ISBN-10 and ISBN-13 to ensure the book is found in Goodreads.
+- Fixed minor problems with alignment and extra spaces.
+
 1.5 - 2017.08.30
 ----------------
 - Added support for Amazon Smile domains.
@@ -21,7 +26,7 @@
 1.2 - 2015.10.14
 ----------------
 - Bug Fix. Don't show anything when book is not found.
-- Removes unnecesary content policies from manifest. 
+- Removes unnecessary content policies from manifest. 
 
 1.1 - 2015.10.13
 ----------------
