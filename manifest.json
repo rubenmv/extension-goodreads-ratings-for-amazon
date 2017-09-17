@@ -4,7 +4,7 @@
   "name": "Goodreads ratings for Amazon",
   "short_name": "Goodreads for Amazon",
   "description": "Show Goodreads ratings for books in Amazon.",
-  "version": "1.5.1",
+  "version": "1.5.2",
 
   "permissions": [
     "*://*.amazon.com/*",
@@ -35,8 +35,6 @@
     "*://smile.amazon.com.br/*",
     "*://*.goodreads.com/*"
   ],
-
-
   "icons": {
     "128": "images/default-128.png",
     "48": "images/default-48.png",
@@ -78,8 +76,5 @@
       "jquery-2.1.4.min.js",
       "content.js"
     ]
-  }],
-  "web_accessible_resources": [
-    "content.css"
-  ]
+  }]
 }
