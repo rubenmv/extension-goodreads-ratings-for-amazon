@@ -42,7 +42,10 @@ function isbn10to13(isbn10) {
   chars.push(check_digit);
   // Array back to string
   var isbn13 = chars.join("");
-
+  // Conversion failed?
+  if (isbn13.indexOf("NaN") !== -1) {
+    isbn13 = "";
+  }
   return isbn13;
 }
 
@@ -63,6 +66,7 @@ var tagOrComment = new RegExp(
   + tagBody
   + ')>',
   'gi');
+
 function removeTags(html) {
   var oldHtml;
   do {
@@ -92,7 +96,9 @@ function retrieveBookInfo(asin, last) {
         // Check once more with isbn13
         if (last === false) {
           asin = isbn10to13(asin);
-          retrieveBookInfo(asin, true);
+          if (asin !== "") {
+            retrieveBookInfo(asin, true);
+          }
         }
         return;
       }
@@ -101,7 +107,7 @@ function retrieveBookInfo(asin, last) {
 
       // CREATE TAGS FOR AMAZON
       // Append content
-      var span = $("<span>", {class: "goodreadsRating"});
+      var span = $("<span>", { class: "goodreadsRating" });
       // Stars
       var stars = $(meta).find(".stars")[0];
       if (stars === undefined || stars === null) {
@@ -111,7 +117,7 @@ function retrieveBookInfo(asin, last) {
       // Create manually to avoid injection
       var parentSpan = $("<span>", { class: "stars staticStars" });
       for (var i = 0; i < stars.children.length; i++) {
-        var starSpan = $("<span>", {class: stars.children[i].className, size: "12x12"});
+        var starSpan = $("<span>", { class: stars.children[i].className, size: "12x12" });
         parentSpan.append(starSpan);
       }
 
@@ -146,34 +152,45 @@ function retrieveBookInfo(asin, last) {
   });
 }
 
-// Try to get the book info as soon as possible
-var asinFound = false;
-var asinChecker = window.setInterval(function () {
-  intervalsPassed++;
-  // console.log("Inverval number " + intervalsPassed);
-
-  var asin = getASIN();
-  if (asin !== false) { // ASIN found
-    window.clearInterval(asinChecker);
-    asinFound = true; // No need to check anymore
-    retrieveBookInfo(asin, false);
-  }
-}, 200);
-
+/**
+ * Check if the current article is a book in any form
+ */
+function checkIfBook() {
+  return document.getElementById("booksTitle") !== null ? true : false;
+}
 
 /**
- * After loading page check if ASIN was found or try once more
+ * START POINT
  */
-$(document).ready(function () {
-  // console.log("Page loaded in " + (Date.now() - startTime) + " ms");
-  if (!asinFound) {
-    // Always remove interval (if ASIN not found, should exists)
-    window.clearInterval(asinChecker);
+// Try to get the book info as soon as possible
+var asinFound = false;
+if (checkIfBook()) {
+  var asinChecker = window.setInterval(function () {
+    intervalsPassed++;
+    // console.log("Inverval number " + intervalsPassed);
     var asin = getASIN();
     if (asin !== false) { // ASIN found
+      window.clearInterval(asinChecker);
+      asinFound = true; // No need to check anymore
       retrieveBookInfo(asin, false);
-    } else {
-      // console.log("Book not found. THE END.");
     }
-  }
-});
+  }, 200);
+
+  /**
+ * After loading page check if ASIN was found or try once more
+ */
+  $(document).ready(function () {
+    // console.log("Page loaded in " + (Date.now() - startTime) + " ms");
+    if (!asinFound) {
+      // Always remove interval (if ASIN not found, should exists)
+      window.clearInterval(asinChecker);
+      var asin = getASIN();
+      if (asin !== false) { // ASIN found
+        retrieveBookInfo(asin, false);
+      } else {
+        // console.log("Book not found. THE END.");
+      }
+    }
+  });
+}
+

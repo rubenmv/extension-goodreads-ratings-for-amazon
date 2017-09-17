@@ -1,3 +1,8 @@
+1.5.2 - 2017.09.17
+------------------
+- Improved security when retrieving Goodreads information
+- General cleanup
+
 1.5.1 - 2017.09.01
 ------------------
 - Search book information with both ISBN-10 and ISBN-13 to ensure the book is found in Goodreads.
