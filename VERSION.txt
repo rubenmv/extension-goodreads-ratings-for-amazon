@@ -1,7 +1,8 @@
 1.5.2 - 2017.09.17
 ------------------
-- Improved security when retrieving Goodreads information
-- General cleanup
+- Improved security when retrieving Goodreads information.
+- Fixes wrong links when book is not found or item is not book.
+- General cleanup.
 
 1.5.1 - 2017.09.01
 ------------------
