@@ -1,3 +1,7 @@
+1.5.3 - 2017.09.18
+------------------
+- Updated jquery library
+
 1.5.2 - 2017.09.17
 ------------------
 - Improved security when retrieving Goodreads information.
