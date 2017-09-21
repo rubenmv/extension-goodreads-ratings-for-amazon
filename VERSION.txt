@@ -1,3 +1,7 @@
+1.5.4 - 2017.09.21
+------------------
+- Restores numeral rating.
+
 1.5.3 - 2017.09.18
 ------------------
 - Updated jquery library

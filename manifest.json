@@ -4,7 +4,7 @@
   "name": "Goodreads ratings for Amazon",
   "short_name": "Goodreads for Amazon",
   "description": "Show Goodreads ratings for books in Amazon.",
-  "version": "1.5.3",
+  "version": "1.5.4",
 
   "permissions": [
     "*://*.amazon.com/*",

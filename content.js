@@ -125,7 +125,8 @@ function retrieveBookInfo(asin, last) {
       // Spacing
       $(span).append("<span class='a-letter-space'></span><span class='a-letter-space'></span>"); // Amazon spacing class
       // Review count and link to Goodreads
-      var reviewCount = removeTags($(meta).find(".votes").text()).trim() + " ratings";
+      var reviewCount = removeTags($(meta).find(".average").text()).trim() + " from " +
+                        removeTags($(meta).find(".votes").text()).trim() + " ratings";
       var $link = $("<a>", { href: urlGoodreads, text: reviewCount });
       $(span).append($link);
 
@@ -140,7 +141,7 @@ function retrieveBookInfo(asin, last) {
       // No Amazon reviews
       if (amazonReview.length === 0) {
         // console.log("GoodreadsForAmazon: crAvgStars not found. Trying with class buying");
-        // Here we go... holy shit Amazon, identify the different parts of your pages properly
+        // Here we go... holy shit Amazon, please define the different parts of your pages properly
         amazonReview = $(".buying").find(".tiny").find("a");
         if (amazonReview.length !== 0) {
           amazonReview = amazonReview.parent();
