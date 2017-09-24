@@ -131,16 +131,25 @@ function retrieveBookInfo(asin, last) {
       $(span).append($link);
 
       // APPEND TO AMAZON PAGE
-      // Append to reviews section
-      var amazonReview = $("#averageCustomerReviews");
+      // Get reviews section
+      // NOTE: Amazon is a mess, usually #averageCusomerReviews exists, but sometimes it won't use it
+      // and put the reviews link into #cmrsSummary-popover
+      var amazonReview = $("#cmrs-atf, #acrCustomerReviewLink");
+      if (amazonReview.length !== 0) {
+      	amazonReview = amazonReview.parent();
+      }
+      else {
+      	// console.log("GoodreadsForAmazon: #cmrs-atf or #acrCustomerReviewLink not found. Trying with #averageCusomerReviews");
+      	amazonReview = $("#averageCustomerReviews");
+      }
       // If not found is not .com and uses different html ¬¬
       if (amazonReview.length === 0) {
-        // console.log("GoodreadsForAmazon: averageCustomerReviews not found. Trying with class crAvgStars");
+         // console.log("GoodreadsForAmazon: #averageCustomerReviews not found. Trying with .crAvgStars");
         amazonReview = $(".buying .crAvgStars");
       }
       // No Amazon reviews
       if (amazonReview.length === 0) {
-        // console.log("GoodreadsForAmazon: crAvgStars not found. Trying with class buying");
+         // console.log("GoodreadsForAmazon: .crAvgStars not found. Trying with .buying");
         // Here we go... holy shit Amazon, please define the different parts of your pages properly
         amazonReview = $(".buying").find(".tiny").find("a");
         if (amazonReview.length !== 0) {
