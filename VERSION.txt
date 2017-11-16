@@ -1,3 +1,8 @@
+1.6.1 - 2017.11.16
+------------------
+- New icon design.
+- Replaces innerHTML with DOM Parser.
+
 1.6 - 2017.11.14
 ----------------
 - Replaces JQuery dependency with native javascript.

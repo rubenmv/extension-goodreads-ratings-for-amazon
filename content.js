@@ -1,5 +1,6 @@
 var startTime = Date.now();
 var intervalsPassed = 0;
+var parser = new DOMParser();
 /**
  * Search for the Amazon identification number
  */
@@ -83,10 +84,9 @@ function retrieveBookInfo(asin, last)
     var urlGoodreads = "https://www.goodreads.com/book/isbn?isbn=" + asin;
     fetch(urlGoodreads).then((resp) => resp.text()).then(function(data)
     {
+        var doc = parser.parseFromString(data, "text/html");
         // GET RATINGS INFO
-        var temp = document.createElement('html');
-        temp.innerHTML = data;
-        var meta = temp.querySelectorAll("#bookMeta");
+        var meta = doc.querySelectorAll("#bookMeta");
         if (meta.length === 0)
         {
             //console.log("GoodreadsForAmazon: Goodreads meta info not found for ASIN = " + asin);
@@ -105,7 +105,7 @@ function retrieveBookInfo(asin, last)
         //console.log("found book with asin: " + asin);
         // CREATE TAGS FOR AMAZON
         // Append content
-        var parentSpan = "<br/><span class='goodreadsRating'>";
+        var parentSpan = "<br/><span id='goodreadsRating' class='goodreadsRating'>";
         // Stars
         var stars = meta.querySelectorAll(".stars")[0];
         if (stars === undefined || stars === null)
@@ -125,6 +125,7 @@ function retrieveBookInfo(asin, last)
         // Review count and link to Goodreads
         var averageHtml = meta.querySelectorAll(".average")[0].textContent;
         var votesHtml = meta.querySelectorAll(".votes")[0].textContent;
+        // Clean html 
         var reviewCount = removeTags(averageHtml).trim() + " from " + removeTags(votesHtml).trim() + " ratings";
         parentSpan += "<a href='" + urlGoodreads + "'>" + reviewCount + "</a>";
         // APPEND TO AMAZON PAGE
@@ -162,7 +163,10 @@ function retrieveBookInfo(asin, last)
             amazonReview = amazonReview[0];
         }
         parentSpan += "</span>";
-        amazonReview.innerHTML += parentSpan;
+        // Parse into html object and select goodreadsRating
+        var spanObject = parser.parseFromString(parentSpan, "text/html").querySelector("#goodreadsRating");
+        // Append to reviews
+        amazonReview.appendChild(spanObject);
     });
 }
 /**
