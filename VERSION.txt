@@ -1,3 +1,8 @@
+1.6.2 - 2018.09.18
+------------------
+- Added more methods for searching for the isbn.
+- Added support for new Amazon layout.
+
 1.6.1 - 2017.11.16
 ------------------
 - New icon design.

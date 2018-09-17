@@ -3,7 +3,7 @@
     "name": "Goodreads ratings for Amazon",
     "short_name": "Goodreads for Amazon",
     "description": "Show Goodreads ratings for books in Amazon.",
-    "version": "1.6.1",
+    "version": "1.6.2",
     "permissions": ["*://*.amazon.com/*", "*://*.amazon.es/*", "*://*.amazon.in/*", "*://*.amazon.co.jp/*", "*://*.amazon.fr/*", "*://*.amazon.de/*", "*://*.amazon.it/*", "*://*.amazon.nl/*", "*://*.amazon.co.uk/*", "*://*.amazon.ca/*", "*://*.amazon.com.mx/*", "*://*.amazon.com.au/*", "*://*.amazon.com.br/*", "*://smile.amazon.com/*", "*://smile.amazon.es/*", "*://smile.amazon.in/*", "*://smile.amazon.co.jp/*", "*://smile.amazon.fr/*", "*://smile.amazon.de/*", "*://smile.amazon.it/*", "*://smile.amazon.nl/*", "*://smile.amazon.co.uk/*", "*://smile.amazon.ca/*", "*://smile.amazon.com.mx/*", "*://smile.amazon.com.au/*", "*://smile.amazon.com.br/*", "*://*.goodreads.com/*"],
     "icons":
     {

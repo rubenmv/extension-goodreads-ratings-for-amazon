@@ -1,25 +1,75 @@
 var startTime = Date.now();
 var intervalsPassed = 0;
 var parser = new DOMParser();
+
+function extractByTerm(searchTerm)
+{
+    searchTerm = searchTerm.toUpperCase();
+    var aTags = document.getElementsByTagName("li");
+    let text;
+    for (let i = 0; i < aTags.length; i++)
+    {
+        if (aTags[i].textContent.toUpperCase().indexOf(searchTerm) > -1)
+        {
+            text = aTags[i].textContent.toUpperCase().replace(searchTerm, '').trim();
+            break;
+        }
+    }
+    return text;
+}
+
+function findAsinOrIsbnText()
+{
+    let found = extractByTerm("isbn-10:");
+    if (found === undefined) found = extractByTerm("isbn-13:");
+    if (found === undefined) found = extractByTerm("asin:");
+    //console.log("found: " + found);
+    return found;
+}
 /**
  * Search for the Amazon identification number
  */
 function getASIN()
 {
-    var asin = document.querySelectorAll('[data-detailpageasin]')[0];
-    if (asin !== undefined)
-    {
-        asin = asin.getAttribute('data-detailpageasin');
-    }
-    else
+    // Method 1
+    var asin = findAsinOrIsbnText();
+    if (asin !== undefined) //console.log("Method 1 asin found: " + asin);
+        // Method 2
+        if (asin === undefined)
+        {
+            var asin = document.querySelectorAll('[data-detailpageasin]')[0];
+            if (asin !== undefined)
+            {
+                asin = asin.getAttribute('data-detailpageasin');
+                //console.log("Method 2 asin found: " + asin);
+            }
+        }
+    // Method 3
+    if (asin === undefined)
     {
         // ASIN not found (not Amazon.com), search again by hidden input
-        asin = document.querySelectorAll("input[name*=ASIN]")[0].value;
-        if (asin === undefined || asin.length === 0 || asin.trim() === "")
+        asin = document.querySelectorAll("input[name*=ASIN]")[0]
+        if (asin !== undefined)
         {
-            console.log("GoodreadsForAmazon: ASIN not found");
-            return false;
+            asin = asin.value;
+            //console.log("Method 3 asin found: " + asin);
         }
+    }
+    // Method 4
+    if (asin === undefined)
+    {
+        asin = document.querySelectorAll('[data-asin]')[0];
+        if (asin !== undefined)
+        {
+            asin = asin.getAttribute('data-asin');
+            //console.log("Method 4 asin found: " + asin);
+        }
+    }
+    // Everything fails, all is lost
+    if (asin === undefined || asin.length === 0 || asin.trim() === "")
+    {
+        //console.log("GoodreadsForAmazon: ASIN not found");
+        return false;
     }
     return asin;
 }
@@ -29,6 +79,7 @@ function getASIN()
  */
 function isbn10to13(isbn10)
 {
+    //console.log("isbn10to13 : isbn10 = " + isbn10);
     // Get every char into an array
     var chars = isbn10.split("");
     // Prepend 978 code
@@ -51,6 +102,7 @@ function isbn10to13(isbn10)
     {
         isbn13 = "";
     }
+    //console.log("isbn13 = " + isbn13);
     return isbn13;
 }
 /**
@@ -80,17 +132,23 @@ function removeTags(html)
  */
 function retrieveBookInfo(asin, last)
 {
-    //console.log("Book found in " + (Date.now() - startTime) + " ms");
     var urlGoodreads = "https://www.goodreads.com/book/isbn?isbn=" + asin;
+    //console.log("Retrieving goodreads info from url: " + urlGoodreads);
     fetch(urlGoodreads).then((resp) => resp.text()).then(function(data)
     {
-        var doc = parser.parseFromString(data, "text/html");
+        let doc = parser.parseFromString(data, "text/html");
         // GET RATINGS INFO
-        var meta = doc.querySelectorAll("#bookMeta");
+        let meta = doc.querySelectorAll("#bookMeta");
+        //console.log("url data retrieved. meta selector: " + meta);
+        //console.log("meta.length: " + meta.length);
+        for (let i = 0, element;
+            (element = meta[i]); i++)
+        {
+            //console.log(element);
+        }
         if (meta.length === 0)
         {
-            //console.log("GoodreadsForAmazon: Goodreads meta info not found for ASIN = " + asin);
-            // Check once more with isbn13
+            // Check once more with isbn13 (in case the asin is really a isbn10)
             if (last === false)
             {
                 asin = isbn10to13(asin);
@@ -99,10 +157,10 @@ function retrieveBookInfo(asin, last)
                     retrieveBookInfo(asin, true);
                 }
             }
+            //console.log("Goodreads info not found for book : " + asin);
             return;
         }
         meta = meta[0];
-        //console.log("found book with asin: " + asin);
         // CREATE TAGS FOR AMAZON
         // Append content
         var parentSpan = "<br/><span id='goodreadsRating' class='goodreadsRating'>";
@@ -110,7 +168,7 @@ function retrieveBookInfo(asin, last)
         var stars = meta.querySelectorAll(".stars")[0];
         if (stars === undefined || stars === null)
         {
-            console.log("Cannot find '.stars' info on page");
+            //console.log("Cannot find '.stars' info on page");
             return;
         }
         // Create manually to avoid injection
@@ -136,10 +194,11 @@ function retrieveBookInfo(asin, last)
         if (amazonReview.length !== 0)
         {
             amazonReview = amazonReview[0].parentNode;
+            //console.log("amazonReview: " + amazonReview);
         }
         else
         {
-            // console.log("GoodreadsForAmazon: #cmrs-atf or #acrCustomerReviewLink not found. Trying with #averageCusomerReviews");
+            // //console.log("GoodreadsForAmazon: #cmrs-atf or #acrCustomerReviewLink not found. Trying with #averageCusomerReviews");
             amazonReview = document.querySelectorAll("#averageCustomerReviews");
         }
         // If not found is not .com and uses different html ¬¬
@@ -149,7 +208,7 @@ function retrieveBookInfo(asin, last)
             // No crAvgStars, search .buying inside .buying (yes, wtf)
             if (amazonReview.length === 0)
             {
-                // console.log("GoodreadsForAmazon: .crAvgStars not found. Trying with .buying");
+                // //console.log("GoodreadsForAmazon: .crAvgStars not found. Trying with .buying");
                 // Here we go... holy shit Amazon, please define the different parts of your pages properly
                 amazonReview = document.querySelectorAll(".buying .tiny a");
                 if (amazonReview.length !== 0)
@@ -165,6 +224,7 @@ function retrieveBookInfo(asin, last)
         parentSpan += "</span>";
         // Parse into html object and select goodreadsRating
         var spanObject = parser.parseFromString(parentSpan, "text/html").querySelector("#goodreadsRating");
+        //console.log("Span object : " + spanObject);
         // Append to reviews
         amazonReview.appendChild(spanObject);
     });
@@ -174,45 +234,55 @@ function retrieveBookInfo(asin, last)
  */
 function checkIfBook()
 {
-    return document.getElementById("booksTitle") !== null ? true : false;
+    return document.getElementById("booksTitle") !== null || document.getElementById("bookEdition") !== null;
 }
 /**
  * START POINT
  */
 // Try to get the book info as soon as possible
 var asinFound = false;
+var startTime = Date.now();
 if (checkIfBook())
 {
     var asinChecker = window.setInterval(function()
     {
         intervalsPassed++;
-        // console.log("Inverval number " + intervalsPassed);
+        // //console.log("Inverval number " + intervalsPassed);
         var asin = getASIN();
+        // Is ASIN found, stop and retrieve book info
         if (asin !== false)
         { // ASIN found
             window.clearInterval(asinChecker);
             asinFound = true; // No need to check anymore
             retrieveBookInfo(asin, false);
         }
-    }, 200);
+        // After 10 seconds stop checking for ASIN
+        var timeInSeconds = Math.floor((Date.now() - startTime)) / 1000;
+        var stopChecks = timeInSeconds > 10;
+        if (stopChecks === true)
+        {
+            window.clearInterval(asinChecker);
+        }
+    }, 500);
     /**
      * After loading page check if ASIN was found or try once more
      */
-    $(document).ready(function()
+    document.addEventListener("DOMContentLoaded", function()
     {
-        // console.log("Page loaded in " + (Date.now() - startTime) + " ms");
+        //console.log("Page loaded in " + (Date.now() - startTime) + " ms");
         if (!asinFound)
         {
             // Always remove interval (if ASIN not found, should exists)
             window.clearInterval(asinChecker);
             var asin = getASIN();
+            //console.log("Document load asin found? : " + asin);
             if (asin !== false)
             { // ASIN found
                 retrieveBookInfo(asin, false);
             }
             else
             {
-                // console.log("Book not found. THE END.");
+                //console.log("Book not found. THE END.");
             }
         }
     });
