@@ -1,3 +1,7 @@
+1.6.3 - 2018.12.01
+------------------
+- Fixed: the extension wasn't working due to a change in the Goodreads site code.
+
 1.6.2 - 2018.09.18
 ------------------
 - Added more methods for searching for the isbn.

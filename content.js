@@ -1,6 +1,12 @@
+const IS_DEBUG = false;
 var startTime = Date.now();
 var intervalsPassed = 0;
 var parser = new DOMParser();
+
+function log(message)
+{
+    if (IS_DEBUG) console.log(message);
+}
 
 function extractByTerm(searchTerm)
 {
@@ -23,7 +29,7 @@ function findAsinOrIsbnText()
     let found = extractByTerm("isbn-10:");
     if (found === undefined) found = extractByTerm("isbn-13:");
     if (found === undefined) found = extractByTerm("asin:");
-    //console.log("found: " + found);
+    //log("found: " + found);
     return found;
 }
 /**
@@ -33,7 +39,7 @@ function getASIN()
 {
     // Method 1
     var asin = findAsinOrIsbnText();
-    if (asin !== undefined) //console.log("Method 1 asin found: " + asin);
+    if (asin !== undefined) //log("Method 1 asin found: " + asin);
         // Method 2
         if (asin === undefined)
         {
@@ -41,7 +47,7 @@ function getASIN()
             if (asin !== undefined)
             {
                 asin = asin.getAttribute('data-detailpageasin');
-                //console.log("Method 2 asin found: " + asin);
+                //log("Method 2 asin found: " + asin);
             }
         }
     // Method 3
@@ -52,7 +58,7 @@ function getASIN()
         if (asin !== undefined)
         {
             asin = asin.value;
-            //console.log("Method 3 asin found: " + asin);
+            //log("Method 3 asin found: " + asin);
         }
     }
     // Method 4
@@ -62,13 +68,13 @@ function getASIN()
         if (asin !== undefined)
         {
             asin = asin.getAttribute('data-asin');
-            //console.log("Method 4 asin found: " + asin);
+            //log("Method 4 asin found: " + asin);
         }
     }
     // Everything fails, all is lost
     if (asin === undefined || asin.length === 0 || asin.trim() === "")
     {
-        //console.log("GoodreadsForAmazon: ASIN not found");
+        //log("GoodreadsForAmazon: ASIN not found");
         return false;
     }
     return asin;
@@ -79,7 +85,7 @@ function getASIN()
  */
 function isbn10to13(isbn10)
 {
-    //console.log("isbn10to13 : isbn10 = " + isbn10);
+    //log("isbn10to13 : isbn10 = " + isbn10);
     // Get every char into an array
     var chars = isbn10.split("");
     // Prepend 978 code
@@ -102,7 +108,7 @@ function isbn10to13(isbn10)
     {
         isbn13 = "";
     }
-    //console.log("isbn13 = " + isbn13);
+    //log("isbn13 = " + isbn13);
     return isbn13;
 }
 /**
@@ -133,18 +139,18 @@ function removeTags(html)
 function retrieveBookInfo(asin, last)
 {
     var urlGoodreads = "https://www.goodreads.com/book/isbn?isbn=" + asin;
-    //console.log("Retrieving goodreads info from url: " + urlGoodreads);
+    //log("Retrieving goodreads info from url: " + urlGoodreads);
     fetch(urlGoodreads).then((resp) => resp.text()).then(function(data)
     {
         let doc = parser.parseFromString(data, "text/html");
         // GET RATINGS INFO
         let meta = doc.querySelectorAll("#bookMeta");
-        //console.log("url data retrieved. meta selector: " + meta);
-        //console.log("meta.length: " + meta.length);
+        //log("url data retrieved. meta selector: " + meta);
+        //log("meta.length: " + meta.length);
         for (let i = 0, element;
             (element = meta[i]); i++)
         {
-            //console.log(element);
+            //log(element);
         }
         if (meta.length === 0)
         {
@@ -157,7 +163,7 @@ function retrieveBookInfo(asin, last)
                     retrieveBookInfo(asin, true);
                 }
             }
-            //console.log("Goodreads info not found for book : " + asin);
+            //log("Goodreads info not found for book : " + asin);
             return;
         }
         meta = meta[0];
@@ -168,7 +174,7 @@ function retrieveBookInfo(asin, last)
         var stars = meta.querySelectorAll(".stars")[0];
         if (stars === undefined || stars === null)
         {
-            //console.log("Cannot find '.stars' info on page");
+            //log("Cannot find '.stars' info on page");
             return;
         }
         // Create manually to avoid injection
@@ -181,10 +187,12 @@ function retrieveBookInfo(asin, last)
         // Spacing
         parentSpan += "<span class='a-letter-space'></span><span class='a-letter-space'></span>";
         // Review count and link to Goodreads
-        var averageHtml = meta.querySelectorAll(".average")[0].textContent;
-        var votesHtml = meta.querySelectorAll(".votes")[0].textContent;
+        var averageHtml = meta.querySelectorAll("[itemprop=ratingValue]")[0].textContent;
+        var votesHtml = meta.querySelectorAll("[itemprop=ratingCount]")[0].parentNode.textContent;
+        log(votesHtml);
+        log(removeTags(votesHtml).trim());
         // Clean html 
-        var reviewCount = removeTags(averageHtml).trim() + " from " + removeTags(votesHtml).trim() + " ratings";
+        var reviewCount = removeTags(averageHtml).trim() + " from " + removeTags(votesHtml).trim();
         parentSpan += "<a href='" + urlGoodreads + "'>" + reviewCount + "</a>";
         // APPEND TO AMAZON PAGE
         // Get reviews section
@@ -194,11 +202,11 @@ function retrieveBookInfo(asin, last)
         if (amazonReview.length !== 0)
         {
             amazonReview = amazonReview[0].parentNode;
-            //console.log("amazonReview: " + amazonReview);
+            //log("amazonReview: " + amazonReview);
         }
         else
         {
-            // //console.log("GoodreadsForAmazon: #cmrs-atf or #acrCustomerReviewLink not found. Trying with #averageCusomerReviews");
+            // //log("GoodreadsForAmazon: #cmrs-atf or #acrCustomerReviewLink not found. Trying with #averageCusomerReviews");
             amazonReview = document.querySelectorAll("#averageCustomerReviews");
         }
         // If not found is not .com and uses different html ¬¬
@@ -208,7 +216,7 @@ function retrieveBookInfo(asin, last)
             // No crAvgStars, search .buying inside .buying (yes, wtf)
             if (amazonReview.length === 0)
             {
-                // //console.log("GoodreadsForAmazon: .crAvgStars not found. Trying with .buying");
+                // //log("GoodreadsForAmazon: .crAvgStars not found. Trying with .buying");
                 // Here we go... holy shit Amazon, please define the different parts of your pages properly
                 amazonReview = document.querySelectorAll(".buying .tiny a");
                 if (amazonReview.length !== 0)
@@ -224,7 +232,7 @@ function retrieveBookInfo(asin, last)
         parentSpan += "</span>";
         // Parse into html object and select goodreadsRating
         var spanObject = parser.parseFromString(parentSpan, "text/html").querySelector("#goodreadsRating");
-        //console.log("Span object : " + spanObject);
+        //log("Span object : " + spanObject);
         // Append to reviews
         amazonReview.appendChild(spanObject);
     });
@@ -247,7 +255,7 @@ if (checkIfBook())
     var asinChecker = window.setInterval(function()
     {
         intervalsPassed++;
-        // //console.log("Inverval number " + intervalsPassed);
+        // //log("Inverval number " + intervalsPassed);
         var asin = getASIN();
         // Is ASIN found, stop and retrieve book info
         if (asin !== false)
@@ -269,20 +277,20 @@ if (checkIfBook())
      */
     document.addEventListener("DOMContentLoaded", function()
     {
-        //console.log("Page loaded in " + (Date.now() - startTime) + " ms");
+        //log("Page loaded in " + (Date.now() - startTime) + " ms");
         if (!asinFound)
         {
             // Always remove interval (if ASIN not found, should exists)
             window.clearInterval(asinChecker);
             var asin = getASIN();
-            //console.log("Document load asin found? : " + asin);
+            //log("Document load asin found? : " + asin);
             if (asin !== false)
             { // ASIN found
                 retrieveBookInfo(asin, false);
             }
             else
             {
-                //console.log("Book not found. THE END.");
+                //log("Book not found. THE END.");
             }
         }
     });
