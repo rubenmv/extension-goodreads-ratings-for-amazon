@@ -1,3 +1,7 @@
+1.7.0 - 2018.12.27
+------------------
+- Adds support for audible.com domains. Works only if audio book version si registered in Goodreads.
+
 1.6.3 - 2018.12.01
 ------------------
 - Fixed: the extension wasn't working due to a change in the Goodreads site code.
