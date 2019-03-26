@@ -1,3 +1,7 @@
+1.7.2 - 2019.03.26
+------------------
+- Fixes problem with CORB on newest Chrome versions.
+
 1.7.0 - 2018.12.27
 ------------------
 - Adds support for audible.com domains. Works only if audio book version si registered in Goodreads.
