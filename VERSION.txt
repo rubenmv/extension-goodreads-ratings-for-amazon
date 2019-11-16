@@ -1,3 +1,7 @@
+1.7.3 - 2019.11.15
+------------------
+- Adds a new method for obtaining the correct ISBN/ASIN for Audible.com.
+
 1.7.2 - 2019.03.26
 ------------------
 - Fixes problem with CORB on newest Chrome versions.
