@@ -1,3 +1,6 @@
+1.7.4 - 2020.04.23
+- Improved detection for book product pages.
+
 1.7.3 - 2019.11.15
 - Adds a new method for obtaining the correct ISBN/ASIN for Audible.com.
 - Improved ISBN/ASIN number detection.

@@ -303,6 +303,16 @@ function AppendToAmazon(contentSpan) {
     // Append to reviews
     amazonReview.appendChild(contentSpan);
 }
+
+function SelectById(idArray)
+{
+    for (let i = 0; i < idArray.length; i++) {
+       var element = document.getElementById(idArray[i]);
+       if(element !== null) return element;
+    }
+    return null;
+}
+
 /**
  * Check if the current article is a book in any form
  */
@@ -311,7 +321,8 @@ function checkIfBook() {
     // Audible
     if (isAudibleCom) return window.location.href.indexOf("audible.com/pd") > 0;
     // Amazon
-    return document.getElementById("booksTitle") !== null || document.getElementById("bookEdition") !== null;
+    var bookDetectionIdArray = ["ebooksImageBlockOuter", "booksTitle", "bookEdition", "pBookUpsellBorrowButton", "booksImageBlock_feature_div"];
+    return SelectById(bookDetectionIdArray) !== null;
 }
 /**
  * START POINT
@@ -323,6 +334,7 @@ var startTime = Date.now();
 isAudibleCom = window.location.hostname.indexOf("audible.com") > 0;
 log("Comenzando. isAudibleCom = " + isAudibleCom);
 if (checkIfBook()) {
+    log("Is book page");
     var asinChecker = window.setInterval(function () {
         intervalsPassed++;
         log("Inverval number " + intervalsPassed);
@@ -380,4 +392,7 @@ if (checkIfBook()) {
             }
         }
     });
+}
+else {
+    log("Is NOT book page");
 }
