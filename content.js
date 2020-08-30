@@ -16,16 +16,14 @@ function logex(methodName, message) {
     if (IS_DEBUG) console.log("Exception in " + methodName + ": " + message);
 }
 
-function extractByTerm(searchTerm) {
+function extractByTerm(searchTerm, rootElement = document) {
     searchTerm = searchTerm.toUpperCase();
-    var aTags = document.getElementsByTagName("li");
+    let aTags = rootElement.getElementsByTagName("li");
     let text;
     for (let i = 0; i < aTags.length; i++) {
-        if (aTags[i].textContent.toUpperCase()
-            .indexOf(searchTerm) > -1) {
-            text = aTags[i].textContent.toUpperCase()
-                .replace(searchTerm, '')
-                .trim();
+        if (aTags[i].textContent.toUpperCase().replace(' ', '').replace(/(\r\n|\n|\r)/gm, '').indexOf(searchTerm) > -1) {
+            console.log("Found text: " + aTags[i].textContent);
+            text = aTags[i].textContent.toUpperCase().replace(/(\r\n|\n|\r)/gm, '').replace(searchTerm, '').trim();
             break;
         }
     }
@@ -33,9 +31,17 @@ function extractByTerm(searchTerm) {
 }
 
 function findAsinOrIsbnText() {
-    let found = extractByTerm("isbn-10:");
-    if (found === undefined) found = extractByTerm("isbn-13:");
-    if (found === undefined) found = extractByTerm("asin:");
+    let found;
+
+    // https://www.amazon.com/Short-Novels-John-Steinbeck-Classics-ebook-dp-B002L4EX9C/dp/B002L4EX9C
+    let details = document.getElementById("detailBullets_feature_div");
+    if (details) found = extractByTerm("asin:", details);
+    if (!found) {
+        found = extractByTerm("isbn-10:");
+        if (!found) found = extractByTerm("isbn-13:");
+        if (!found) found = extractByTerm("asin:");
+    }
+
     log("found: " + found);
     return found;
 }
@@ -72,26 +78,26 @@ function getASIN() {
         else {
             log("Is Amazon. Searching for ISBN/ASIN...");
             // Method 1
-            var asinText = findAsinOrIsbnText();
+            let asinText = findAsinOrIsbnText();
             if (asin !== undefined) {
                 asin.push(asinText);
                 log("Method 1 asin found: " + asin);
             }
             // Method 2
-            var asinElement = document.querySelectorAll('[data-detailpageasin]')[0];
+            let asinElement = document.querySelectorAll('[data-detailpageasin]')[0];
             if (asinElement !== undefined) {
                 asin.push(asinElement.getAttribute('data-detailpageasin'));
                 log("Method 2 asin found: " + asin);
             }
             // Method 3
             // ASIN not found (not Amazon.com), search again by hidden input
-            var inputAsin = document.querySelectorAll("input[name*=ASIN]")[0]
+            let inputAsin = document.querySelectorAll("input[name*=ASIN]")[0]
             if (inputAsin !== undefined) {
                 asin.push(asin.value);
                 log("Method 3 asin found: " + asin);
             }
             // Method 4
-            var dataAsin = document.querySelectorAll('[data-asin]')[0];
+            let dataAsin = document.querySelectorAll('[data-asin]')[0];
             if (dataAsin !== undefined) {
                 asin.push(dataAsin.getAttribute('data-asin'));
                 log("Method 4 asin found: " + asin);
@@ -102,7 +108,7 @@ function getASIN() {
     }
 
     // Limpiamos duplicados y vacios
-    var filteredAsin = asin.filter(function (value, index, inputArray) {
+    var filteredAsin = asin.filter(function(value, index, inputArray) {
         return value != null && value != "" &&
             (inputArray.indexOf(value) === index);
     });
@@ -167,6 +173,7 @@ function removeTags(html) {
     } while (html !== oldHtml);
     return html.replace(/</g, '&lt;');
 }
+
 function processResponse(asin, meta, goodreadsLink, last) {
     if (infoFound) return;
     if (meta.length === 0) {
@@ -215,7 +222,7 @@ function processResponse(asin, meta, goodreadsLink, last) {
     // Clean html 
     var reviewCount = removeTags(averageHtml)
         .trim() + " from " + removeTags(votesHtml)
-            .trim();
+        .trim();
     parentSpan += "<a ";
     // Different font for audible
     if (isAudibleCom) { parentSpan += "class='audibleFont' "; }
@@ -304,11 +311,10 @@ function AppendToAmazon(contentSpan) {
     amazonReview.appendChild(contentSpan);
 }
 
-function SelectById(idArray)
-{
+function SelectById(idArray) {
     for (let i = 0; i < idArray.length; i++) {
-       var element = document.getElementById(idArray[i]);
-       if(element !== null) return element;
+        var element = document.getElementById(idArray[i]);
+        if (element !== null) return element;
     }
     return null;
 }
@@ -335,7 +341,7 @@ isAudibleCom = window.location.hostname.indexOf("audible.com") > 0;
 log("Comenzando. isAudibleCom = " + isAudibleCom);
 if (checkIfBook()) {
     log("Is book page");
-    var asinChecker = window.setInterval(function () {
+    var asinChecker = window.setInterval(function() {
         intervalsPassed++;
         log("Inverval number " + intervalsPassed);
         var asin = getASIN();
@@ -346,11 +352,10 @@ if (checkIfBook()) {
             asinFound = true; // No need to check anymore
 
             // Try to retrieve info about the book from the asin codes found
-            var metaInfoChecker = window.setInterval(function () {
+            var metaInfoChecker = window.setInterval(function() {
                 if (asin.length == 0 || infoFound) {
                     window.clearInterval(metaInfoChecker);
-                }
-                else {
+                } else {
                     var currentAsin = asin.pop();
                     log("Retrieving book info for asin/isbn number: " + currentAsin);
                     retrieveBookInfo(currentAsin, false);
@@ -367,7 +372,7 @@ if (checkIfBook()) {
     /**
      * After loading page check if ASIN was found or try once more
      */
-    document.addEventListener("DOMContentLoaded", function () {
+    document.addEventListener("DOMContentLoaded", function() {
         log("Page loaded in " + (Date.now() - startTime) + " ms");
         if (!asinFound) {
             // Always remove interval (if ASIN not found, should exists)
@@ -377,11 +382,10 @@ if (checkIfBook()) {
             log("Document load asin found? : " + asin);
             if (asin.length > 0) { // ASIN found
                 // Try to retrieve info about the book from the asin codes found
-                var metaInfoChecker = window.setInterval(function () {
+                var metaInfoChecker = window.setInterval(function() {
                     if (asin.length == 0 || infoFound) {
                         window.clearInterval(metaInfoChecker);
-                    }
-                    else {
+                    } else {
                         var currentAsin = asin.pop();
                         log("Retrieving book info for asin/isbn number: " + currentAsin);
                         retrieveBookInfo(currentAsin, false);
@@ -392,7 +396,6 @@ if (checkIfBook()) {
             }
         }
     });
-}
-else {
+} else {
     log("Is NOT book page");
 }
