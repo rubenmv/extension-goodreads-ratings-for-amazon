@@ -1,3 +1,6 @@
+1.7.5 - 2020.08.30
+- Fixes ASIN retrieval in some pages.
+
 1.7.4 - 2020.04.23
 - Improved detection for book product pages.
 
