@@ -338,7 +338,7 @@ var asinFound = false;
 var startTime = Date.now();
 // Check if the domain is Amazon or Audible
 isAudibleCom = window.location.hostname.indexOf("audible.com") > 0;
-log("Comenzando. isAudibleCom = " + isAudibleCom);
+log("isAudibleCom = " + isAudibleCom);
 if (checkIfBook()) {
     log("Is book page");
     var asinChecker = window.setInterval(function() {

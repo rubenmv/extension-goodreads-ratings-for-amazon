@@ -1,5 +1,6 @@
 1.8.0 - 2021.07.16
 - Fixes ASIN retrieval for method 3.
+- Corrections in documentation and support for more Amazon domains, thanks to https://github.com/dtsdwarak.
 
 1.7.5 - 2020.08.30
 - Fixes ASIN retrieval in some pages.
