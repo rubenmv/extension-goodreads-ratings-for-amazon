@@ -90,10 +90,10 @@ function getASIN() {
                 log("Method 2 asin found: " + asin);
             }
             // Method 3
-            // ASIN not found (not Amazon.com), search again by hidden input
-            let inputAsin = document.querySelectorAll("input[name*=ASIN]")[0]
+            // ASIN not found (not Amazon.com), search again by hidden inputs
+            let inputAsin = document.querySelectorAll("input[name*=ASIN]")[0];
             if (inputAsin !== undefined) {
-                asin.push(asin.value);
+                asin.push(inputAsin.value);
                 log("Method 3 asin found: " + asin);
             }
             // Method 4
@@ -253,7 +253,7 @@ function retrieveBookInfo(asin, last) {
             let doc = parser.parseFromString(data, "text/html");
             // GET RATINGS INFO
             let meta = doc.querySelectorAll("#bookMeta");
-            log("url data retrieved. meta selector: " + meta);
+            log("url data retrieved. meta selector: " + meta.values);
             log("meta.length: " + meta.length);
             for (let i = 0, element;
                 (element = meta[i]); i++) {
