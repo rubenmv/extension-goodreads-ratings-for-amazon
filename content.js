@@ -1,4 +1,4 @@
-const IS_DEBUG = false;
+const IS_DEBUG = true;
 const ASIN_RETRIEVE_INTERVAL = 500;
 const BOOKINFO_RETRIEVE_INTERVAL = 1000;
 var startTime = Date.now();
