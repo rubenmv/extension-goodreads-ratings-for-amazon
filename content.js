@@ -1,4 +1,4 @@
-const IS_DEBUG = true;
+const IS_DEBUG = false;
 const ASIN_RETRIEVE_INTERVAL = 500;
 const BOOKINFO_RETRIEVE_INTERVAL = 1000;
 var startTime = Date.now();
@@ -108,7 +108,7 @@ function getASIN() {
     }
 
     // Limpiamos duplicados y vacios
-    var filteredAsin = asin.filter(function(value, index, inputArray) {
+    var filteredAsin = asin.filter(function (value, index, inputArray) {
         return value != null && value != "" &&
             (inputArray.indexOf(value) === index);
     });
@@ -174,6 +174,40 @@ function removeTags(html) {
     return html.replace(/</g, '&lt;');
 }
 
+function GetStarsContent(meta, stars, isNewStyle) {
+    let spanContent = '';
+    if (!isNewStyle) {
+        for (var i = 0; i < stars.children.length; i++) {
+            spanContent += "<span class='" + stars.children[i].className + "' size=12x12></span>";
+        }
+        return spanContent;
+    }
+    // Quick and really dirty hack for the new goodreads style when retrieving from Chrome
+    let decimalNumber = parseFloat(meta.querySelector('.RatingStatistics__rating').textContent);
+    let entero = Math.floor(decimalNumber);
+    let decimalPart = decimalNumber - entero;
+    for (var i = 0; i < stars.children.length; i++) {
+        let currentStar = stars.children[i];
+        let currentStarPaths = currentStar.querySelectorAll('path');
+        if (currentStarPaths.length == 1) { // Only 1 drawing path, either empty or full star
+            let isEmpty = currentStar.querySelector('.RatingStar__backgroundFill') != null;
+            let isFilled = currentStar.querySelector('.RatingStar__fill') != null;
+            if(isEmpty){
+                spanContent += "<span class='staticStar p0' size=12x12></span>";
+            }
+            if(isFilled) {
+                spanContent += "<span class='staticStar p10' size=12x12></span>";
+            }
+        }
+        else {// More than 1 path, get star based on decimal part of rating
+            if (decimalPart <= 0.5) spanContent += "<span class='staticStar p3' size=12x12></span>";
+            else spanContent += "<span class='staticStar p6' size=12x12></span>";
+        }
+    }
+    
+    return spanContent;
+}
+
 function processResponse(asin, meta, goodreadsLink, last) {
     if (infoFound) return;
     if (meta.length === 0) {
@@ -189,13 +223,23 @@ function processResponse(asin, meta, goodreadsLink, last) {
     }
     meta = meta[0];
 
+    let newStyle = false;
+
     // CREATE TAGS
     // Stars
     var stars = meta.querySelectorAll(".stars")[0];
+
+    if (stars === undefined || stars === null) {
+        stars = meta.querySelectorAll(".RatingStars")[0];
+        newStyle = true;
+    }
+
     if (stars === undefined || stars === null) {
         log("Cannot find '.stars' info on page");
         return;
     }
+    
+    log("Is new Style? " + newStyle);
 
     // Mark info found
     infoFound = true;
@@ -207,22 +251,22 @@ function processResponse(asin, meta, goodreadsLink, last) {
     var parentSpan = "<br/><span id='goodreadsRating' class='goodreadsRating'>";
     // Create manually to avoid injection
     parentSpan += "<span class='stars staticStars'>";
-    for (var i = 0; i < stars.children.length; i++) {
-        parentSpan += "<span class='" + stars.children[i].className + "' size=12x12></span>";
-    }
+    let starsContent = GetStarsContent(meta, stars, newStyle);
+    log('Stars Content: ' + starsContent);
+    parentSpan += starsContent;
     parentSpan += "</span>";
     // Spacing
     parentSpan += "<span class='a-letter-space'></span><span class='a-letter-space'></span>";
     // Review count and link to Goodreads
-    var averageHtml = meta.querySelectorAll("[itemprop=ratingValue]")[0].textContent;
-    var votesHtml = meta.querySelectorAll("[itemprop=ratingCount]")[0].parentNode.textContent;
+    var averageHtml = meta.querySelector("[itemprop=ratingValue]")?.textContent ?? meta.querySelector('.RatingStatistics__rating')?.textContent;
+    var votesHtml = meta.querySelector("[itemprop=ratingCount]")?.parentNode?.textContent ?? meta.querySelector("[data-testid=ratingsCount]")?.textContent;
     log(votesHtml);
     log(removeTags(votesHtml)
         .trim());
     // Clean html 
     var reviewCount = removeTags(averageHtml)
         .trim() + " from " + removeTags(votesHtml)
-        .trim();
+            .trim();
     parentSpan += "<a ";
     // Different font for audible
     if (isAudibleCom) { parentSpan += "class='audibleFont' "; }
@@ -253,6 +297,7 @@ function retrieveBookInfo(asin, last) {
             let doc = parser.parseFromString(data, "text/html");
             // GET RATINGS INFO
             let meta = doc.querySelectorAll("#bookMeta");
+            if(meta.length === 0) meta = doc.querySelectorAll(".BookPageMetadataSection__ratingStats");
             log("url data retrieved. meta selector: " + meta.values);
             log("meta.length: " + meta.length);
             for (let i = 0, element;
@@ -341,7 +386,7 @@ isAudibleCom = window.location.hostname.indexOf("audible.com") > 0;
 log("isAudibleCom = " + isAudibleCom);
 if (checkIfBook()) {
     log("Is book page");
-    var asinChecker = window.setInterval(function() {
+    var asinChecker = window.setInterval(function () {
         intervalsPassed++;
         log("Inverval number " + intervalsPassed);
         var asin = getASIN();
@@ -352,7 +397,7 @@ if (checkIfBook()) {
             asinFound = true; // No need to check anymore
 
             // Try to retrieve info about the book from the asin codes found
-            var metaInfoChecker = window.setInterval(function() {
+            var metaInfoChecker = window.setInterval(function () {
                 if (asin.length == 0 || infoFound) {
                     window.clearInterval(metaInfoChecker);
                 } else {
@@ -372,7 +417,7 @@ if (checkIfBook()) {
     /**
      * After loading page check if ASIN was found or try once more
      */
-    document.addEventListener("DOMContentLoaded", function() {
+    document.addEventListener("DOMContentLoaded", function () {
         log("Page loaded in " + (Date.now() - startTime) + " ms");
         if (!asinFound) {
             // Always remove interval (if ASIN not found, should exists)
@@ -382,7 +427,7 @@ if (checkIfBook()) {
             log("Document load asin found? : " + asin);
             if (asin.length > 0) { // ASIN found
                 // Try to retrieve info about the book from the asin codes found
-                var metaInfoChecker = window.setInterval(function() {
+                var metaInfoChecker = window.setInterval(function () {
                     if (asin.length == 0 || infoFound) {
                         window.clearInterval(metaInfoChecker);
                     } else {

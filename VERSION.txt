@@ -1,3 +1,6 @@
+1.9.1 - 2022.08.13
+- Quick fix for Chrome and other browsers using new Goodreads style.
+
 1.8.0 - 2021.07.16
 - Fixes ASIN retrieval for method 3.
 - Corrections in documentation and support for more Amazon domains, thanks to https://github.com/dtsdwarak.
