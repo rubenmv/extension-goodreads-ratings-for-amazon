@@ -6,6 +6,7 @@ var intervalsPassed = 0;
 var parser = new DOMParser();
 var isAudibleCom = false;
 var infoFound = false;
+var ogUrl = null;
 
 
 function log(message) {
@@ -213,12 +214,15 @@ function processResponse(asin, meta, goodreadsLink, last) {
 	if (meta.length === 0) {
 		// Check once more with isbn13 (in case the asin is really a isbn10)
 		if (last === false) {
+			log("Try again but with isbn13");
 			asin = isbn10to13(asin);
 			if (asin !== "") {
 				retrieveBookInfo(asin, true);
+				return;
 			}
 		}
-		log("Goodreads info not found for this book");
+		
+		log("Goodreads info not found for this book. Goodbye.");
 		return;
 	}
 	meta = meta[0];
@@ -282,23 +286,37 @@ function processResponse(asin, meta, goodreadsLink, last) {
 	// Amazon
 	else AppendToAmazon(contentSpan);
 }
+
 /**
  * Get book reviews from ASIN number and show rating
  * last = boolean. Checks if is the last recursive pass
  */
 function retrieveBookInfo(asin, last) {
-	var urlGoodreads = "https://www.goodreads.com/book/isbn?isbn=" + asin;
+	var urlGoodreads = ogUrl ?? "https://www.goodreads.com/book/isbn?isbn=" + asin;
 	log("Retrieving goodreads info from url: " + urlGoodreads);
 	chrome.runtime.sendMessage({
 		contentScriptQuery: "fetchHtml",
 		url: urlGoodreads
 	}, data => {
 		try {
+			
 			let doc = parser.parseFromString(data, "text/html");
+			// log(data);
 			// GET RATINGS INFO
 			let meta = doc.querySelectorAll("#bookMeta");
+			if(!meta || meta.length === 0){
+				log("bookMeta not found, searching for .BookPageMetadataSection");
+				meta = doc.querySelectorAll(".BookPageMetadataSection");
+			}
+			
+			if(!tryAgainWithOg && (!meta || meta.length === 0)) { // tryAgainWithOg: so it tries only once
+				ogUrl = doc.querySelector('meta[property="og:url"]')?.content;
+			}
+			
+			log("Info retrieved. #bookMeta tag: " + meta.length + " nodes");
 			if (meta.length === 0) meta = doc.querySelectorAll(".BookPageMetadataSection__ratingStats");
 			log("url data retrieved. meta selector: " + meta.values);
+			log(meta[0]);
 			log("meta.length: " + meta.length);
 			for (let i = 0, element;
 				(element = meta[i]); i++) {
@@ -381,6 +399,8 @@ function checkIfBook() {
 // Try to get the book info as soon as possible
 var asinFound = false;
 var startTime = Date.now();
+var goodreadsRetrieveInternal = 0;
+var currentAsin;
 // Check if the domain is Amazon or Audible
 isAudibleCom = window.location.hostname.indexOf("audible.com") > 0;
 log("isAudibleCom = " + isAudibleCom);
@@ -398,10 +418,14 @@ if (checkIfBook()) {
 
 			// Try to retrieve info about the book from the asin codes found
 			var metaInfoChecker = window.setInterval(function () {
-				if (asin.length == 0 || infoFound) {
+				goodreadsRetrieveInternal++;
+				if (infoFound || goodreadsRetrieveInternal > 20) {
+					log("asin length is " + asin.length + ", infoFound = " + infoFound);
 					window.clearInterval(metaInfoChecker);
 				} else {
-					var currentAsin = asin.pop();
+					while(asin.length > 0 && !currentAsin){
+						currentAsin = asin.pop();
+					}
 					log("Retrieving book info for asin/isbn number: " + currentAsin);
 					retrieveBookInfo(currentAsin, false);
 				}
