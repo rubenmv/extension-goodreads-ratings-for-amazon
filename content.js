@@ -1,16 +1,22 @@
 const IS_DEBUG = false;
-const ASIN_RETRIEVE_INTERVAL = 500;
 const BOOKINFO_RETRIEVE_INTERVAL = 1000;
-var startTime = Date.now();
-var intervalsPassed = 0;
 var parser = new DOMParser();
 var isAudibleCom = false;
-var infoFound = false;
 var ogUrl = null;
+var tryAgainWithOg = true;
+var displayAmazonGoodreads = false;
+var asinCheckedList = [];
+var goodreadsRetrieveInternal = 0;
+var finished = false; // book found, info appended to page
 
+function uuidv4() {
+	return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
+		(c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+	);
+}
 
-function log(message) {
-	if (IS_DEBUG) console.log(message);
+function log(message, uid) {
+	if (IS_DEBUG) console.log(uid + ' ::: ' + message);
 }
 
 function logex(methodName, message) {
@@ -51,7 +57,6 @@ function findAsinOrIsbnText() {
  */
 function getASIN() {
 	var asin = [];
-
 	try {
 		// Audible
 		if (isAudibleCom) {
@@ -71,7 +76,9 @@ function getASIN() {
 			// Method 2
 			var asinElement = document.getElementById("reviewsAsinUS");
 			if (asinElement === undefined) asinElement = document.getElementsByName("productAsin")[0];
-			if (asinElement === undefined) asinElement = document.querySelectorAll("[data-asin]")[0].getAttribute("data-asin");
+			if (asinElement === undefined) {
+				asinElement = document.querySelectorAll("[data-asin]")[0].getAttribute("data-asin");
+			}
 			asin.push(asinElement === undefined ? false : asinElement.value);
 			log("Method 2 asin found: " + asin);
 		}
@@ -93,6 +100,9 @@ function getASIN() {
 			// Method 3
 			// ASIN not found (not Amazon.com), search again by hidden inputs
 			let inputAsin = document.querySelectorAll("input[name*=ASIN]")[0];
+			if (inputAsin === undefined) inputAsin = document.getElementsByName("items[0.base][asin]")[0];
+			if (inputAsin === undefined) inputAsin = document.getElementsByName("items[0].action.asin")[0];
+			
 			if (inputAsin !== undefined) {
 				asin.push(inputAsin.value);
 				log("Method 3 asin found: " + asin);
@@ -192,7 +202,7 @@ function GetStarsContent(meta, stars, isNewStyle) {
 		let currentStarPaths = currentStar.querySelectorAll('path');
 		let containsEmpty = currentStar.querySelector('.RatingStar__backgroundFill');
 		let containsFill = currentStar.querySelector('.RatingStar__fill')?.getAttribute('d'); // class + attribute
-		if (containsEmpty && containsFill) { 
+		if (containsEmpty && containsFill) {
 			if (decimalPart <= 0.5) spanContent += "<span class='staticStar p3' size=12x12></span>";
 			else spanContent += "<span class='staticStar p6' size=12x12></span>";
 		}
@@ -209,20 +219,21 @@ function GetStarsContent(meta, stars, isNewStyle) {
 	return spanContent;
 }
 
-function processResponse(asin, meta, goodreadsLink, last) {
-	if (infoFound) return;
+function processResponse(asin, meta, goodreadsLink, last, uid) {
+	log("Process response", uid);
+	if (finished) return;
 	if (meta.length === 0) {
 		// Check once more with isbn13 (in case the asin is really a isbn10)
 		if (last === false) {
-			log("Try again but with isbn13");
+			log("Try again but with isbn13", uid);
 			asin = isbn10to13(asin);
 			if (asin !== "") {
 				retrieveBookInfo(asin, true);
 				return;
 			}
 		}
-		
-		log("Goodreads info not found for this book. Goodbye.");
+
+		log("Goodreads info not found for this book. Goodbye.", uid);
 		return;
 	}
 	meta = meta[0];
@@ -239,14 +250,11 @@ function processResponse(asin, meta, goodreadsLink, last) {
 	}
 
 	if (stars === undefined || stars === null) {
-		log("Cannot find '.stars' info on page");
+		log("Cannot find '.stars' info on page", uid);
 		return;
 	}
 
-	log("Is new Style? " + newStyle);
-
-	// Mark info found
-	infoFound = true;
+	log("Is new Style? " + newStyle, uid);
 
 	// Check to be sure the info was not already added to the page
 	var goodreadsTag = document.getElementById('goodreadsRating');
@@ -256,7 +264,7 @@ function processResponse(asin, meta, goodreadsLink, last) {
 	// Create manually to avoid injection
 	parentSpan += "<span class='stars staticStars'>";
 	let starsContent = GetStarsContent(meta, stars, newStyle);
-	log('Stars Content: ' + starsContent);
+	log('Stars Content: ' + starsContent, uid);
 	parentSpan += starsContent;
 	parentSpan += "</span>";
 	// Spacing
@@ -264,8 +272,8 @@ function processResponse(asin, meta, goodreadsLink, last) {
 	// Review count and link to Goodreads
 	var averageHtml = meta.querySelector("[itemprop=ratingValue]")?.textContent ?? meta.querySelector('.RatingStatistics__rating')?.textContent;
 	var votesHtml = meta.querySelector("[itemprop=ratingCount]")?.parentNode?.textContent ?? meta.querySelector("[data-testid=ratingsCount]")?.textContent;
-	log(votesHtml);
-	log(removeTags(votesHtml)
+	log(votesHtml, uid);
+	log(removeTags(votesHtml, uid)
 		.trim());
 	// Clean html 
 	var reviewCount = removeTags(averageHtml)
@@ -280,11 +288,11 @@ function processResponse(asin, meta, goodreadsLink, last) {
 	var contentSpan = parser.parseFromString(parentSpan, "text/html")
 		.querySelector("#goodreadsRating");
 	// FINALLY APPEND TO PAGE
-	log("Span object : " + contentSpan);
+	log("Span object : " + contentSpan.textContent, uid);
 	// Audible.com
 	if (isAudibleCom) AppendToAudible(contentSpan);
 	// Amazon
-	else AppendToAmazon(contentSpan);
+	else AppendToAmazon(contentSpan, uid);
 }
 
 /**
@@ -292,66 +300,85 @@ function processResponse(asin, meta, goodreadsLink, last) {
  * last = boolean. Checks if is the last recursive pass
  */
 function retrieveBookInfo(asin, last) {
+	var uid = uuidv4();
+
 	var urlGoodreads = ogUrl ?? "https://www.goodreads.com/book/isbn?isbn=" + asin;
-	log("Retrieving goodreads info from url: " + urlGoodreads);
+	log("Retrieving goodreads info from url: " + urlGoodreads, uid);
 	chrome.runtime.sendMessage({
 		contentScriptQuery: "fetchHtml",
 		url: urlGoodreads
 	}, data => {
 		try {
-			
+
 			let doc = parser.parseFromString(data, "text/html");
 			// log(data);
 			// GET RATINGS INFO
 			let meta = doc.querySelectorAll("#bookMeta");
-			if(!meta || meta.length === 0){
-				log("bookMeta not found, searching for .BookPageMetadataSection");
+			if (!meta || meta.length === 0) {
+				log("bookMeta not found, searching for .BookPageMetadataSection", uid);
 				meta = doc.querySelectorAll(".BookPageMetadataSection");
 			}
-			
-			if(!tryAgainWithOg && (!meta || meta.length === 0)) { // tryAgainWithOg: so it tries only once
+
+			if (!tryAgainWithOg && (!meta || meta.length === 0)) { // tryAgainWithOg: so it tries only once
+				tryAgainWithOg = false;
 				ogUrl = doc.querySelector('meta[property="og:url"]')?.content;
 			}
-			
-			log("Info retrieved. #bookMeta tag: " + meta.length + " nodes");
+
+			log("Info retrieved. #bookMeta tag: " + meta.length + " nodes", uid);
 			if (meta.length === 0) meta = doc.querySelectorAll(".BookPageMetadataSection__ratingStats");
-			log("url data retrieved. meta selector: " + meta.values);
-			log(meta[0]);
-			log("meta.length: " + meta.length);
+			log("url data retrieved. meta selector: " + meta.values, uid);
+			log(meta[0], uid);
+			log("meta.length: " + meta.length, uid);
 			for (let i = 0, element;
 				(element = meta[i]); i++) {
-				log(element);
+				log(element, uid);
 			}
-			processResponse(asin, meta, urlGoodreads, last);
+			processResponse(asin, meta, urlGoodreads, last, uid);
 		} catch (error) {
-			logex("retrieveBookInfo", error);
+			logex(uid + " ::: retrieveBookInfo", error);
 		}
 	});
 }
 
 function AppendToAudible(contentSpan) {
+	if (finished) return;
 	log("AppendToAudible");
 	var ratingsLabel = document.getElementsByClassName("ratingsLabel");
 	if (ratingsLabel.length > 0) {
 		var parentUl = ratingsLabel[0].parentNode;
 		parentUl.insertBefore(contentSpan, ratingsLabel[0]);
+		finished = true;
 	}
 }
 /**
  * Appends ratings to Amazon page
  */
-function AppendToAmazon(contentSpan) {
-	log("AppendToAmazon");
+function AppendToAmazon(contentSpan, uid) {
+	if (finished) return;
+	log("AppendToAmazon", uid);
 	// APPEND TO AMAZON PAGE
 	// Get reviews section
 	// NOTE: Amazon is a mess, usually #averageCusomerReviews exists, but sometimes it won't use it
 	// and put the reviews link into #cmrsSummary-popover
-	var amazonReview = document.querySelectorAll("#cmrs-atf, #acrCustomerReviewLink");
+	var amazonReview = document.querySelectorAll("#cmrs-atf, #acrCustomerReviewLink, #averageCustomerReviews");
+	if (amazonReview.length === 0) {
+		amazonReview = document.querySelectorAll("#centerAttributesColumns");
+	}
 	if (amazonReview.length !== 0) {
-		amazonReview = amazonReview[0].parentNode;
-		log("amazonReview: " + amazonReview);
+		amazonReview = amazonReview[0];
+		log("Selected node amazonReview: " + amazonReview.id, uid);
+		if(amazonReview.id === 'centerAttributesColumns'){
+			var leftChild = amazonReview.children[0];
+			if (leftChild) {
+				amazonReview = leftChild;
+			}
+		}
+		else {
+			amazonReview = amazonReview.parentNode;
+		}
+		log("amazonReview: " + amazonReview, uid);
 	} else {
-		log("GoodreadsForAmazon: #cmrs-atf or #acrCustomerReviewLink not found. Trying with #averageCusomerReviews");
+		log("GoodreadsForAmazon: #cmrs-atf or #acrCustomerReviewLink not found. Trying with #averageCusomerReviews", uid);
 		amazonReview = document.querySelectorAll("#averageCustomerReviews");
 	}
 	// If not found is not .com and uses different html ¬¬
@@ -359,19 +386,27 @@ function AppendToAmazon(contentSpan) {
 		var amazonReview = document.querySelectorAll(".buying .crAvgStars");
 		// No crAvgStars, search .buying inside .buying (yes, wtf)
 		if (amazonReview.length === 0) {
-			log("GoodreadsForAmazon: .crAvgStars not found. Trying with .buying");
+			log("GoodreadsForAmazon: .crAvgStars not found. Trying with .buying", uid);
 			// Here we go... holy shit Amazon, please define the different parts of your pages properly
 			amazonReview = document.querySelectorAll(".buying .tiny a");
 			if (amazonReview.length !== 0) {
 				amazonReview = amazonReview[0].parentNode
 			}
+			// else: just append
 		}
 	}
 	if (amazonReview[0] !== undefined) {
+		log("Get first node of amazonReview", uid);
 		amazonReview = amazonReview[0];
 	}
 	// Append to reviews
+	log("Append contentSpan", uid);
 	amazonReview.appendChild(contentSpan);
+
+	// Display or hide amazon's own goodreads node
+	ShowOrHideAmazonsDisplayGoodreads();
+
+	finished = true;
 }
 
 function SelectById(idArray) {
@@ -390,81 +425,73 @@ function checkIfBook() {
 	// Audible
 	if (isAudibleCom) return window.location.href.indexOf("audible.com/pd") > 0;
 	// Amazon
-	var bookDetectionIdArray = ["ebooksImageBlockOuter", "booksTitle", "bookEdition", "pBookUpsellBorrowButton", "booksImageBlock_feature_div"];
+	var bookDetectionIdArray = ["ebooksImageBlockOuter", "booksTitle", "bookEdition", "pBookUpsellBorrowButton", "booksImageBlock_feature_div", "pbooksReadSampleButton-announce", "rpi-attribute-book_details-fiona_pages", "rpi-attribute-book_details-customer_recommended_age", "rpi-attribute-book_details-isbn13"];
 	return SelectById(bookDetectionIdArray) !== null;
 }
+
+function ShowOrHideAmazonsDisplayGoodreads() {
+	log("Display Amazon's own Goodreads rating? " + displayAmazonGoodreads);
+	try {
+		if (!displayAmazonGoodreads) {
+			let grCount = document.getElementsByClassName('gr-review-base')[0];
+			if (grCount) {
+				let papa = grCount.parentNode;
+				papa.removeChild(grCount);
+			}
+		}
+	} catch (error) {
+		log(error);
+	}
+}
+
 /**
- * START POINT
+ * STARTING POINT
  */
-// Try to get the book info as soon as possible
-var asinFound = false;
-var startTime = Date.now();
-var goodreadsRetrieveInternal = 0;
-var currentAsin;
+
 // Check if the domain is Amazon or Audible
 isAudibleCom = window.location.hostname.indexOf("audible.com") > 0;
 log("isAudibleCom = " + isAudibleCom);
 if (checkIfBook()) {
 	log("Is book page");
-	var asinChecker = window.setInterval(function () {
-		intervalsPassed++;
-		log("Inverval number " + intervalsPassed);
-		var asin = getASIN();
-		log("asin array length: " + asin.length);
-		// Is ASIN found, stop and retrieve book info
-		if (asin.length > 0) { // ASIN found
-			window.clearInterval(asinChecker);
-			asinFound = true; // No need to check anymore
 
-			// Try to retrieve info about the book from the asin codes found
-			var metaInfoChecker = window.setInterval(function () {
-				goodreadsRetrieveInternal++;
-				if (infoFound || goodreadsRetrieveInternal > 20) {
-					log("asin length is " + asin.length + ", infoFound = " + infoFound);
-					window.clearInterval(metaInfoChecker);
-				} else {
-					while(asin.length > 0 && !currentAsin){
-						currentAsin = asin.pop();
-					}
-					log("Retrieving book info for asin/isbn number: " + currentAsin);
-					retrieveBookInfo(currentAsin, false);
-				}
-			}, BOOKINFO_RETRIEVE_INTERVAL);
-		}
-		// After 10 seconds stop checking for ASIN
-		var timeInSeconds = Math.floor((Date.now() - startTime)) / 1000;
-		var stopChecks = timeInSeconds > 10;
-		if (stopChecks === true) {
-			window.clearInterval(asinChecker);
-		}
-	}, ASIN_RETRIEVE_INTERVAL);
-	/**
-	 * After loading page check if ASIN was found or try once more
-	 */
-	document.addEventListener("DOMContentLoaded", function () {
-		log("Page loaded in " + (Date.now() - startTime) + " ms");
-		if (!asinFound) {
-			// Always remove interval (if ASIN not found, should exists)
-			window.clearInterval(asinChecker);
-			var asin = getASIN();
-			log("asin array length: " + asin.length);
-			log("Document load asin found? : " + asin);
-			if (asin.length > 0) { // ASIN found
-				// Try to retrieve info about the book from the asin codes found
-				var metaInfoChecker = window.setInterval(function () {
-					if (asin.length == 0 || infoFound) {
-						window.clearInterval(metaInfoChecker);
-					} else {
-						var currentAsin = asin.pop();
+	// Load storage options
+	var options = {};
+	options.displayAmazonGoodreads = false;
+	chrome.storage.local.get(options, function (items) {
+		displayAmazonGoodreads = items.displayAmazonGoodreads;
+	});
+
+	// Try to retrieve info about the book from the asin codes found
+	var metaInfoChecker = window.setInterval(function () {
+		goodreadsRetrieveInternal++;
+		log("Interval number " + goodreadsRetrieveInternal);
+
+		var asinList = getASIN();
+		if (asinList && asinList.length > 0) {
+			if (finished || goodreadsRetrieveInternal > 20) {
+				log("asin length is " + asinList.length + ", finished = " + finished);
+				window.clearInterval(metaInfoChecker);
+			} else {
+				for (let index = 0; index < asinList.length; index++) {
+					let currentAsin = asinList[index];
+					// Search in checked asin list
+					let found = asinCheckedList.includes(currentAsin);
+					// if found: continue with next
+					// if not found: add to list and process
+					if (found === false) {
+						asinCheckedList.push(currentAsin);
 						log("Retrieving book info for asin/isbn number: " + currentAsin);
 						retrieveBookInfo(currentAsin, false);
+						break;
 					}
-				}, BOOKINFO_RETRIEVE_INTERVAL);
-			} else {
-				log("Book not found. THE END.");
+					else {
+						log('ASIN ' + currentAsin + ' already processed, continue');
+					}
+				}
 			}
 		}
-	});
+	}, BOOKINFO_RETRIEVE_INTERVAL);
+
 } else {
 	log("Is NOT book page");
 }

@@ -1,3 +1,8 @@
+2.0.3 - 2023.07.08
+- Fixes various problems.
+- Adds options page.
+- Adds option to always display Amazon's version of Goodreads ratings (as of now, only Amazon.com).
+
 2.0.2 - 2023.06.18
 - Improved logs and data retrieve.
 
