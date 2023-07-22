@@ -1,5 +1,7 @@
 const IS_DEBUG = false;
 const BOOKINFO_RETRIEVE_INTERVAL = 1000;
+const MAX_BOOK_CHECK_TRIES = 15;
+var checkInterval = 0;
 var parser = new DOMParser();
 var isAudibleCom = false;
 var ogUrl = null;
@@ -102,7 +104,7 @@ function getASIN() {
 			let inputAsin = document.querySelectorAll("input[name*=ASIN]")[0];
 			if (inputAsin === undefined) inputAsin = document.getElementsByName("items[0.base][asin]")[0];
 			if (inputAsin === undefined) inputAsin = document.getElementsByName("items[0].action.asin")[0];
-			
+
 			if (inputAsin !== undefined) {
 				asin.push(inputAsin.value);
 				log("Method 3 asin found: " + asin);
@@ -367,7 +369,7 @@ function AppendToAmazon(contentSpan, uid) {
 	if (amazonReview.length !== 0) {
 		amazonReview = amazonReview[0];
 		log("Selected node amazonReview: " + amazonReview.id, uid);
-		if(amazonReview.id === 'centerAttributesColumns'){
+		if (amazonReview.id === 'centerAttributesColumns') {
 			var leftChild = amazonReview.children[0];
 			if (leftChild) {
 				amazonReview = leftChild;
@@ -421,7 +423,7 @@ function SelectById(idArray) {
  * Check if the current article is a book in any form
  */
 function checkIfBook() {
-	log("checkIfBook");
+	log("checkIfBook attempt " + checkInterval);
 	// Audible
 	if (isAudibleCom) return window.location.href.indexOf("audible.com/pd") > 0;
 	// Amazon
@@ -448,50 +450,58 @@ function ShowOrHideAmazonsDisplayGoodreads() {
  * STARTING POINT
  */
 
-// Check if the domain is Amazon or Audible
-isAudibleCom = window.location.hostname.indexOf("audible.com") > 0;
-log("isAudibleCom = " + isAudibleCom);
-if (checkIfBook()) {
-	log("Is book page");
+var isBookChecker = window.setInterval(function () {
+	if(checkInterval > MAX_BOOK_CHECK_TRIES) {
+		window.clearInterval(isBookChecker);
+		return;
+	}
+	checkInterval++;
+	// Check if the domain is Amazon or Audible
+	isAudibleCom = window.location.hostname.indexOf("audible.com") > 0;
+	log("isAudibleCom = " + isAudibleCom);
+	if (checkIfBook()) {
+		window.clearInterval(isBookChecker);
+		log("Is book page");
 
-	// Load storage options
-	var options = {};
-	options.displayAmazonGoodreads = false;
-	chrome.storage.local.get(options, function (items) {
-		displayAmazonGoodreads = items.displayAmazonGoodreads;
-	});
+		// Load storage options
+		var options = {};
+		options.displayAmazonGoodreads = false;
+		chrome.storage.local.get(options, function (items) {
+			displayAmazonGoodreads = items.displayAmazonGoodreads;
+		});
 
-	// Try to retrieve info about the book from the asin codes found
-	var metaInfoChecker = window.setInterval(function () {
-		goodreadsRetrieveInternal++;
-		log("Interval number " + goodreadsRetrieveInternal);
+		// Try to retrieve info about the book from the asin codes found
+		var metaInfoChecker = window.setInterval(function () {
+			goodreadsRetrieveInternal++;
+			log("Interval number " + goodreadsRetrieveInternal);
 
-		var asinList = getASIN();
-		if (asinList && asinList.length > 0) {
-			if (finished || goodreadsRetrieveInternal > 20) {
-				log("asin length is " + asinList.length + ", finished = " + finished);
-				window.clearInterval(metaInfoChecker);
-			} else {
-				for (let index = 0; index < asinList.length; index++) {
-					let currentAsin = asinList[index];
-					// Search in checked asin list
-					let found = asinCheckedList.includes(currentAsin);
-					// if found: continue with next
-					// if not found: add to list and process
-					if (found === false) {
-						asinCheckedList.push(currentAsin);
-						log("Retrieving book info for asin/isbn number: " + currentAsin);
-						retrieveBookInfo(currentAsin, false);
-						break;
-					}
-					else {
-						log('ASIN ' + currentAsin + ' already processed, continue');
+			var asinList = getASIN();
+			if (asinList && asinList.length > 0) {
+				if (finished || goodreadsRetrieveInternal > 20) {
+					log("asin length is " + asinList.length + ", finished = " + finished);
+					window.clearInterval(metaInfoChecker);
+				} else {
+					for (let index = 0; index < asinList.length; index++) {
+						let currentAsin = asinList[index];
+						// Search in checked asin list
+						let found = asinCheckedList.includes(currentAsin);
+						// if found: continue with next
+						// if not found: add to list and process
+						if (found === false) {
+							asinCheckedList.push(currentAsin);
+							log("Retrieving book info for asin/isbn number: " + currentAsin);
+							retrieveBookInfo(currentAsin, false);
+							break;
+						}
+						else {
+							log('ASIN ' + currentAsin + ' already processed, continue');
+						}
 					}
 				}
 			}
-		}
-	}, BOOKINFO_RETRIEVE_INTERVAL);
+		}, BOOKINFO_RETRIEVE_INTERVAL);
 
-} else {
-	log("Is NOT book page");
-}
+	} else {
+		log("Is NOT book page");
+	}
+}, BOOKINFO_RETRIEVE_INTERVAL);

@@ -1,3 +1,6 @@
+2.0.4 - 2023.07.22
+- Checks if the page is a book listing every 1 seconds until found or reaches max attempts.
+
 2.0.3 - 2023.07.08
 - Fixes various problems.
 - Adds options page.
