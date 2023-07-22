@@ -1,4 +1,4 @@
-const IS_DEBUG = false;
+const IS_DEBUG = true;
 const BOOKINFO_RETRIEVE_INTERVAL = 1000;
 const MAX_BOOK_CHECK_TRIES = 15;
 var checkInterval = 0;
@@ -10,6 +10,8 @@ var displayAmazonGoodreads = false;
 var asinCheckedList = [];
 var goodreadsRetrieveInternal = 0;
 var finished = false; // book found, info appended to page
+var baseAPI = typeof chrome !== 'undefined' ? chrome : browser;
+var isBusy = false;
 
 function uuidv4() {
 	return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
@@ -42,13 +44,27 @@ function extractByTerm(searchTerm, rootElement = document) {
 function findAsinOrIsbnText() {
 	let found;
 
-	// https://www.amazon.com/Short-Novels-John-Steinbeck-Classics-ebook-dp-B002L4EX9C/dp/B002L4EX9C
-	let details = document.getElementById("detailBullets_feature_div");
-	if (details) found = extractByTerm("asin:", details);
 	if (!found) {
-		found = extractByTerm("isbn-10:");
-		if (!found) found = extractByTerm("isbn-13:");
-		if (!found) found = extractByTerm("asin:");
+		let reviewsDetail = document.getElementById('detailBullets_averageCustomerReviews');
+		if (reviewsDetail) {
+			found = reviewsDetail.getAttribute('data-asin');
+			if(found === '') found = undefined;
+		}
+	}
+
+	if (!found) {
+		// https://www.amazon.com/Short-Novels-John-Steinbeck-Classics-ebook-dp-B002L4EX9C/dp/B002L4EX9C
+		let details = document.getElementById("detailBullets_feature_div");
+		if (details) found = extractByTerm("asin:", details);
+		if (!found) {
+			found = extractByTerm("isbn-10:");
+			if (!found) {
+				found = extractByTerm("isbn-13:");
+			}
+			if (!found) {
+				found = extractByTerm("asin:");
+			}
+		}
 	}
 
 	log("found: " + found);
@@ -236,6 +252,7 @@ function processResponse(asin, meta, goodreadsLink, last, uid) {
 		}
 
 		log("Goodreads info not found for this book. Goodbye.", uid);
+		isBusy = false;
 		return;
 	}
 	meta = meta[0];
@@ -253,6 +270,7 @@ function processResponse(asin, meta, goodreadsLink, last, uid) {
 
 	if (stars === undefined || stars === null) {
 		log("Cannot find '.stars' info on page", uid);
+		isBusy = false;
 		return;
 	}
 
@@ -260,7 +278,10 @@ function processResponse(asin, meta, goodreadsLink, last, uid) {
 
 	// Check to be sure the info was not already added to the page
 	var goodreadsTag = document.getElementById('goodreadsRating');
-	if (goodreadsTag !== undefined && goodreadsTag !== null) return;
+	if (goodreadsTag !== undefined && goodreadsTag !== null) {
+		isBusy = false;
+		return;
+	}
 
 	var parentSpan = "<br/><span id='goodreadsRating' class='goodreadsRating'>";
 	// Create manually to avoid injection
@@ -295,6 +316,8 @@ function processResponse(asin, meta, goodreadsLink, last, uid) {
 	if (isAudibleCom) AppendToAudible(contentSpan);
 	// Amazon
 	else AppendToAmazon(contentSpan, uid);
+
+	isBusy = false;
 }
 
 /**
@@ -306,7 +329,7 @@ function retrieveBookInfo(asin, last) {
 
 	var urlGoodreads = ogUrl ?? "https://www.goodreads.com/book/isbn?isbn=" + asin;
 	log("Retrieving goodreads info from url: " + urlGoodreads, uid);
-	chrome.runtime.sendMessage({
+	baseAPI.runtime.sendMessage({
 		contentScriptQuery: "fetchHtml",
 		url: urlGoodreads
 	}, data => {
@@ -338,6 +361,7 @@ function retrieveBookInfo(asin, last) {
 			processResponse(asin, meta, urlGoodreads, last, uid);
 		} catch (error) {
 			logex(uid + " ::: retrieveBookInfo", error);
+			isBusy = false;
 		}
 	});
 }
@@ -451,7 +475,7 @@ function ShowOrHideAmazonsDisplayGoodreads() {
  */
 
 var isBookChecker = window.setInterval(function () {
-	if(checkInterval > MAX_BOOK_CHECK_TRIES) {
+	if (checkInterval > MAX_BOOK_CHECK_TRIES) {
 		window.clearInterval(isBookChecker);
 		return;
 	}
@@ -466,12 +490,17 @@ var isBookChecker = window.setInterval(function () {
 		// Load storage options
 		var options = {};
 		options.displayAmazonGoodreads = false;
-		chrome.storage.local.get(options, function (items) {
+		baseAPI.storage.local.get(options, function (items) {
 			displayAmazonGoodreads = items.displayAmazonGoodreads;
 		});
 
 		// Try to retrieve info about the book from the asin codes found
 		var metaInfoChecker = window.setInterval(function () {
+			if (isBusy) {
+				log("Still busy, wait...");
+				return;
+			}
+
 			goodreadsRetrieveInternal++;
 			log("Interval number " + goodreadsRetrieveInternal);
 
@@ -490,6 +519,7 @@ var isBookChecker = window.setInterval(function () {
 						if (found === false) {
 							asinCheckedList.push(currentAsin);
 							log("Retrieving book info for asin/isbn number: " + currentAsin);
+							isBusy = true;
 							retrieveBookInfo(currentAsin, false);
 							break;
 						}

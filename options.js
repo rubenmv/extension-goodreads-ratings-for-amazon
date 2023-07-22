@@ -1,4 +1,5 @@
 var autosaveOnClick = false;
+var baseAPI = typeof chrome !== 'undefined'? chrome : browser;
 
 function saveOptions() {
 	'use strict';
@@ -14,7 +15,7 @@ function saveOptions() {
 	//Generate the keys for the icon
 	options.displayAmazonGoodreads = displayAmazonGoodreads;
 
-	chrome.storage.local.set(options, function() {
+	baseAPI.storage.local.set(options, function() {
 	});
 }
 
@@ -24,7 +25,7 @@ function restoreOptions() {
 	var options = {};
 	options.displayAmazonGoodreads = false;
 	// Get the items from localStorage
-	chrome.storage.local.get(options, function(items) {
+	baseAPI.storage.local.get(options, function(items) {
 		document.getElementById('displayAmazonGoodreads').checked = items.displayAmazonGoodreads;
 		autosaveOnClick = true;
 	});
