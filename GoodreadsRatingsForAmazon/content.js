@@ -1,11 +1,10 @@
-const IS_DEBUG = true;
+const IS_DEBUG = false;
 const BOOKINFO_RETRIEVE_INTERVAL = 1000;
 const MAX_BOOK_CHECK_TRIES = 15;
 var checkInterval = 0;
 var parser = new DOMParser();
 var isAudibleCom = false;
 var ogUrl = null;
-var tryAgainWithOg = true;
 var displayAmazonGoodreads = false;
 var asinCheckedList = [];
 var goodreadsRetrieveInternal = 0;
@@ -339,21 +338,21 @@ function retrieveBookInfo(asin, last) {
 			// log(data);
 			// GET RATINGS INFO
 			let meta = doc.querySelectorAll("#bookMeta");
+			
 			if (!meta || meta.length === 0) {
-				log("bookMeta not found, searching for .BookPageMetadataSection", uid);
-				meta = doc.querySelectorAll(".BookPageMetadataSection");
+				log("bookMeta not found, searching for .BookPageMetadataSection__ratingStats", uid);
+				meta = doc.querySelectorAll(".BookPageMetadataSection__ratingStats");
+				
+				if (!meta || meta.length === 0) {
+					log(".BookPageMetadataSection__ratingStats not found, searching for .BookPageMetadataSection", uid);
+					meta = doc.querySelectorAll(".BookPageMetadataSection");
+				}
 			}
+			
 
-			if (!tryAgainWithOg && (!meta || meta.length === 0)) { // tryAgainWithOg: so it tries only once
-				tryAgainWithOg = false;
-				ogUrl = doc.querySelector('meta[property="og:url"]')?.content;
-			}
+			log("End of info retrieval. Found " + meta.length + " nodes", uid);
+			log("Meta selector values: " + meta.values, uid);
 
-			log("Info retrieved. #bookMeta tag: " + meta.length + " nodes", uid);
-			if (meta.length === 0) meta = doc.querySelectorAll(".BookPageMetadataSection__ratingStats");
-			log("url data retrieved. meta selector: " + meta.values, uid);
-			log(meta[0], uid);
-			log("meta.length: " + meta.length, uid);
 			for (let i = 0, element;
 				(element = meta[i]); i++) {
 				log(element, uid);
@@ -500,7 +499,9 @@ var isBookChecker = window.setInterval(function () {
 				log("Still busy, wait...");
 				return;
 			}
-
+			
+			asinCheckedList = [];
+			
 			goodreadsRetrieveInternal++;
 			log("Interval number " + goodreadsRetrieveInternal);
 
