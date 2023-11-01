@@ -135,7 +135,7 @@ function getASIN() {
 		logex("getASIN", error);
 	}
 
-	// Limpiamos duplicados y vacios
+	// Remove duplicates and empty entries
 	var filteredAsin = asin.filter(function (value, index, inputArray) {
 		return value != null && value != "" &&
 			(inputArray.indexOf(value) === index);
@@ -450,7 +450,7 @@ function checkIfBook() {
 	// Audible
 	if (isAudibleCom) return window.location.href.indexOf("audible.com/pd") > 0;
 	// Amazon
-	var bookDetectionIdArray = ["ebooksImageBlockOuter", "booksTitle", "bookEdition", "pBookUpsellBorrowButton", "booksImageBlock_feature_div", "pbooksReadSampleButton-announce", "rpi-attribute-book_details-fiona_pages", "rpi-attribute-book_details-customer_recommended_age", "rpi-attribute-book_details-isbn13"];
+	var bookDetectionIdArray = ["ebooksImageBlockOuter", "booksTitle", "bookEdition", "pBookUpsellBorrowButton", "booksImageBlock_feature_div", "pbooksReadSampleButton-announce", "rpi-attribute-book_details-fiona_pages", "rpi-attribute-book_details-ebook_pages", "rpi-attribute-book_details-customer_recommended_age", "rpi-attribute-book_details-isbn13"];
 	return SelectById(bookDetectionIdArray) !== null;
 }
 
