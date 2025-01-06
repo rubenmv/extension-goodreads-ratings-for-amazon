@@ -3,7 +3,7 @@
     "name": "Goodreads ratings in Amazon (v2.0)",
     "short_name": "GoodRAmazon",
     "description": "Goodreads ratings for books in Amazon pages.",
-    "version": "2.0.5",
+    "version": "2.0.6",
     "homepage_url": "https://github.com/rubenmv/extension-goodreads-ratings-for-amazon",
     "permissions": [
         "*://*.amazon.com/*",

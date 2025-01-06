@@ -14,6 +14,9 @@ https://github.com/rubenmv/extension-goodreads-ratings-for-amazon
 
 # Version History
 
+2.0.6 - 2025.01.06
+- Added more detection terms.
+
 2.0.5 - 2023.07.23
 - Improved data extraction from Goodreads.
 

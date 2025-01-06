@@ -348,7 +348,6 @@ function retrieveBookInfo(asin, last) {
 					meta = doc.querySelectorAll(".BookPageMetadataSection");
 				}
 			}
-			
 
 			log("End of info retrieval. Found " + meta.length + " nodes", uid);
 			log("Meta selector values: " + meta.values, uid);
@@ -450,7 +449,11 @@ function checkIfBook() {
 	// Audible
 	if (isAudibleCom) return window.location.href.indexOf("audible.com/pd") > 0;
 	// Amazon
-	var bookDetectionIdArray = ["ebooksImageBlockOuter", "booksTitle", "bookEdition", "pBookUpsellBorrowButton", "booksImageBlock_feature_div", "pbooksReadSampleButton-announce", "rpi-attribute-book_details-fiona_pages", "rpi-attribute-book_details-customer_recommended_age", "rpi-attribute-book_details-isbn13"];
+	var bookDetectionIdArray = ["ebooksImageBlockOuter", "booksTitle", "bookEdition", 
+								"pBookUpsellBorrowButton", "booksImageBlock_feature_div", 
+								"pbooksReadSampleButton-announce", "rpi-attribute-book_details-fiona_pages", 
+								"rpi-attribute-book_details-customer_recommended_age", "rpi-attribute-book_details-isbn13",
+								"bookslegalcompliancebanner_feature_div"];
 	return SelectById(bookDetectionIdArray) !== null;
 }
 
