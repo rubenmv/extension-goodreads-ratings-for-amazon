@@ -3,7 +3,7 @@
     "name": "Goodreads ratings in Amazon (v2.0)",
     "short_name": "GoodRAmazon",
     "description": "Goodreads ratings for books in Amazon pages.",
-    "version": "2.0.6",
+    "version": "2.0.7",
     "homepage_url": "https://github.com/rubenmv/extension-goodreads-ratings-for-amazon",
     "permissions": [
         "*://*.amazon.com/*",
@@ -49,7 +49,27 @@
         "*://smile.amazon.com.au/*",
         "*://smile.amazon.com.br/*",
         "*://*.goodreads.com/*",
-        "*://www.audible.com/pd/*",
+        "*://*.audible.com/*",
+        "*://*.audible.es/*",
+        "*://*.audible.in/*",
+        "*://*.audible.sg/*",
+        "*://*.audible.cn/*",
+        "*://*.audible.com.tr/*",
+        "*://*.audible.eg/*",
+        "*://*.audible.ae/*",
+        "*://*.audible.sa/*",
+        "*://*.audible.pl/*",
+        "*://*.audible.se/*",
+        "*://*.audible.co.jp/*",
+        "*://*.audible.fr/*",
+        "*://*.audible.de/*",
+        "*://*.audible.it/*",
+        "*://*.audible.nl/*",
+        "*://*.audible.co.uk/*",
+        "*://*.audible.ca/*",
+        "*://*.audible.com.mx/*",
+        "*://*.audible.com.au/*",
+        "*://*.audible.com.br/*",
         "storage"
     ],
     "options_ui": {
@@ -61,7 +81,9 @@
         "24": "images/default-24.png"
     },
     "background": {
-        "scripts": ["background.js"]
+        "scripts": [
+            "background.js"
+        ]
     },
     "content_scripts": [
         {
@@ -108,7 +130,27 @@
                 "*://smile.amazon.com.mx/*",
                 "*://smile.amazon.com.au/*",
                 "*://smile.amazon.com.br/*",
-                "*://www.audible.com/pd/*"
+                "*://*.audible.com/*",
+                "*://*.audible.es/*",
+                "*://*.audible.in/*",
+                "*://*.audible.sg/*",
+                "*://*.audible.cn/*",
+                "*://*.audible.com.tr/*",
+                "*://*.audible.eg/*",
+                "*://*.audible.ae/*",
+                "*://*.audible.sa/*",
+                "*://*.audible.pl/*",
+                "*://*.audible.se/*",
+                "*://*.audible.co.jp/*",
+                "*://*.audible.fr/*",
+                "*://*.audible.de/*",
+                "*://*.audible.it/*",
+                "*://*.audible.nl/*",
+                "*://*.audible.co.uk/*",
+                "*://*.audible.ca/*",
+                "*://*.audible.com.mx/*",
+                "*://*.audible.com.au/*",
+                "*://*.audible.com.br/*"
             ],
             "css": [
                 "content.css"
